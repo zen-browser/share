@@ -1,5 +1,6 @@
 
 import { createApp } from './app.js';
+import template from './template.html';
 
 const KV_VALUE_LIMIT = 25 * 1024 * 1024; // KV's hard cap per value
 const MIN_KV_TTL_SECONDS = 60; // KV rejects TTLs under a minute
@@ -42,6 +43,7 @@ export default {
       maxBodyBytes: Math.min(Number(env.MAX_BODY_BYTES ?? KV_VALUE_LIMIT), KV_VALUE_LIMIT),
       retentionDays: Number(env.RETENTION_DAYS ?? 30),
       storage: kvStorage(env.SHARES),
+      template,
       rateLimit: env.CREATE_LIMIT ? async (key) => (await env.CREATE_LIMIT.limit({ key })).success : null,
     });
     return app(request);

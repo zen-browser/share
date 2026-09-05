@@ -2,6 +2,10 @@ name = "share"
 main = "worker.js"
 compatibility_date = "2026-08-01"
 
+rules = [{ type = "Text", globs = ["**/*.html"], fallthrough = true }]
+
+assets = { directory = "./public" }
+
 kv_namespaces = [
   { binding = "SHARES", id = "645f0c5bc63a4f5c84e5b09a26f30c3b" }
 ]

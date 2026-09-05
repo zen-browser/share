@@ -1,6 +1,6 @@
 import { keysMatch, matchesAny } from './auth.js';
 import { concatStreams, htmlResponse, HttpError, jsonResponse, readBody } from './http.js';
-import { renderSharePage } from './template.js';
+import { renderSharePage } from './render.js';
 import { validateShare } from './validate.js';
 
 const HOME_REDIRECT = 'https://zen-browser.app/download';
@@ -50,6 +50,7 @@ export function createApp(options) {
     apiKey,
     secretKeys = [],
     storage,
+    template,
     maxBodyBytes = 25 * 1024 * 1024,
     retentionDays = 30,
     // Optional async (key) => allowed; when present, throttles share creation.
@@ -58,6 +59,7 @@ export function createApp(options) {
 
   if (!apiKey) throw new Error('apiKey is required');
   if (!storage) throw new Error('storage is required');
+  if (!template) throw new Error('template is required');
   if (!Number.isFinite(maxBodyBytes) || maxBodyBytes <= 0) throw new Error('maxBodyBytes must be a positive number');
   if (!Number.isFinite(retentionDays) || retentionDays < 0) throw new Error('retentionDays must be a non-negative number');
 
@@ -140,7 +142,7 @@ export function createApp(options) {
     }
     const item = (doc.shared ?? []).find((entry) => entry?.type === typeKey);
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
-    return htmlResponse(200, renderSharePage(typeKey, item, record.meta ?? {}, `/${slug}/${id}/data`));
+    return htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, `/${slug}/${id}/data`));
   }
 
   async function handleData(id) {

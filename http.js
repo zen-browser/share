@@ -20,7 +20,8 @@ export function htmlResponse(status, markup) {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      'content-security-policy': "default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'",
+      'content-security-policy':
+        "default-src 'none'; script-src 'self' https://cdn.tailwindcss.com; img-src https: http: data:; style-src 'unsafe-inline'",
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
     },
