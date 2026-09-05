@@ -1,0 +1,21 @@
+name = "share"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+kv_namespaces = [
+  { binding = "SHARES", id = "645f0c5bc63a4f5c84e5b09a26f30c3b" }
+]
+
+[vars]
+# Maximum accepted share size in bytes; KV caps values at 25 MiB regardless.
+MAX_BODY_BYTES = "26214400"
+# Days before a share is deleted (unless created with a secret key).
+RETENTION_DAYS = "30"
+
+# Share creation throttle: at most `limit` creates per `period` seconds per
+# client IP (period must be 10 or 60). Secret-key creates bypass it.
+[[unsafe.bindings]]
+name = "CREATE_LIMIT"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }

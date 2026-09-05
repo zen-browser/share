@@ -1,0 +1,21 @@
+{
+  "name": "share",
+  "version": "1.0.0",
+  "description": "A simple server to share items between your Zen buds!",
+  "type": "module",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MPL-2.0",
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
+}
