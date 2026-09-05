@@ -133,11 +133,11 @@
     },
 
     "spaceItem": {
-      "oneOf": [{ "$ref": "#/$defs/tab" }, { "$ref": "#/$defs/folder" }]
+      "oneOf": [{ "$ref": "#/$defs/tab" }, { "$ref": "#/$defs/folder" }, { "$ref": "#/$defs/splitView" }]
     },
 
     "folderItem": {
-      "oneOf": [{ "$ref": "#/$defs/tab" }, { "$ref": "#/$defs/folder" }]
+      "oneOf": [{ "$ref": "#/$defs/tab" }, { "$ref": "#/$defs/folder" }, { "$ref": "#/$defs/splitView" }]
     }
   }
 }

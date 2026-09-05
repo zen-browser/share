@@ -1,4 +1,0 @@
-# Local development secrets for `wrangler dev` — copy to .dev.vars (gitignored).
-# In production these are set with `wrangler secret put`.
-API_KEY=dev-key
-SECRET_KEYS=dev-secret

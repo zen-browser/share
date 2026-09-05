@@ -1,9 +1,8 @@
-
 import { createApp } from './app.js';
 import template from './template.html';
 
-const KV_VALUE_LIMIT = 25 * 1024 * 1024; // KV's hard cap per value
-const MIN_KV_TTL_SECONDS = 60; // KV rejects TTLs under a minute
+const KV_VALUE_LIMIT = 25 * 1024 * 1024;
+const MIN_KV_TTL_SECONDS = 60;
 
 function kvStorage(kv) {
   const key = (id) => `share:${id}`;

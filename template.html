@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>share</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>*,::before,::after{corner-shape: superellipse(1.6);}</style>
   </head>
-  <body class="min-h-screen bg-violet-100 p-6 text-zinc-900 sm:p-12">
-    <main id="app" class="mx-auto w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl shadow-violet-200 sm:p-10"></main>
-
+  <body class="min-h-screen text-zinc-900 antialiased">
+    <div id="app"></div>
     <script type="application/json" id="share-data">{{data}}</script>
     <script src="/client.js"></script>
   </body>

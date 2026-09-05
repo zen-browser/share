@@ -1,4 +1,3 @@
-
 const encoder = new TextEncoder();
 
 export class HttpError extends Error {
@@ -21,14 +20,13 @@ export function htmlResponse(status, markup) {
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'content-security-policy':
-        "default-src 'none'; script-src 'self' https://cdn.tailwindcss.com; img-src https: http: data:; style-src 'unsafe-inline'",
+        "default-src 'none'; script-src 'self' https://cdn.tailwindcss.com; img-src https: http: data:; style-src 'unsafe-inline'; connect-src https://api.microlink.io",
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
     },
   });
 }
 
-// One body out of string parts and ReadableStreams, in order.
 export function concatStreams(parts) {
   let index = 0;
   let reader = null;
@@ -63,7 +61,6 @@ export function concatStreams(parts) {
   });
 }
 
-// Buffers the request body, rejecting with 413 as soon as it exceeds the cap.
 export async function readBody(request, maxBodyBytes) {
   const tooLarge = new HttpError(413, `share data exceeds the ${maxBodyBytes} byte limit`);
   const declared = Number(request.headers.get('content-length'));

@@ -20,7 +20,7 @@ const SLUG_TO_TYPE = {
 };
 
 const MAX_NAME_LENGTH = 200;
-const MAX_META_BYTES = 1000; // KV caps serialized metadata at 1024 bytes
+const MAX_META_BYTES = 1000;
 
 const ID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const ID_PATTERN = /^[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}$/;
@@ -41,10 +41,6 @@ function normalizeId(value) {
   return ID_PATTERN.test(value) ? value.toUpperCase() : null;
 }
 
-/**
- * @param options.storage  { readText(id), readStream(id), write(id, text, meta, ttlSeconds|null), remove(id) }
- *   readText -> { text, meta } | null; readStream -> { stream, meta } | null.
- */
 export function createApp(options) {
   const {
     apiKey,
@@ -53,7 +49,6 @@ export function createApp(options) {
     template,
     maxBodyBytes = 25 * 1024 * 1024,
     retentionDays = 30,
-    // Optional async (key) => allowed; when present, throttles share creation.
     rateLimit = null,
   } = options;
 
@@ -63,7 +58,6 @@ export function createApp(options) {
   if (!Number.isFinite(maxBodyBytes) || maxBodyBytes <= 0) throw new Error('maxBodyBytes must be a positive number');
   if (!Number.isFinite(retentionDays) || retentionDays < 0) throw new Error('retentionDays must be a non-negative number');
 
-  // KV's TTL enforces expiry with about a minute of granularity.
   async function getLive(id, read) {
     const record = await read(id);
     if (!record) return null;
@@ -164,7 +158,6 @@ export function createApp(options) {
       if (url.pathname === '/') return Response.redirect(HOME_REDIRECT, 302);
       if (request.method === 'GET' && url.pathname === '/health') return jsonResponse(200, { ok: true });
 
-      // Public share pages: no API key, the unguessable id is the credential.
       const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})(\/data)?$/);
       if (request.method === 'GET' && publicMatch && SLUG_TO_TYPE[publicMatch[1]]) {
         const id = normalizeId(publicMatch[2]);
@@ -172,15 +165,12 @@ export function createApp(options) {
           if (publicMatch[3]) throw new HttpError(404, 'share not found');
           return Response.redirect(NOT_FOUND_REDIRECT, 302);
         }
-        return publicMatch[3] ? await handleData(id) : await handlePage(SLUG_TO_TYPE[publicMatch[1]], id, publicMatch[1]);
+        if (publicMatch[3]) return await handleData(id);
+        return await handlePage(SLUG_TO_TYPE[publicMatch[1]], id, publicMatch[1]);
       }
 
-      // Anything else browser-facing bounces to Zen's 404 page; /api and the
-      // /data endpoints keep returning JSON errors for client code.
       if (!url.pathname.startsWith('/api/')) return Response.redirect(NOT_FOUND_REDIRECT, 302);
 
-      // A valid secret key authorizes on its own (and makes creates permanent);
-      // the API key is only checked when no secret key is presented.
       const secretKey = request.headers.get('x-secret-key');
       let viaSecretKey = false;
       if (secretKey != null) {
