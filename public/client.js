@@ -426,7 +426,7 @@ function renderFolder(item, meta) {
   panel.append(emptyViewEl());
   const openInline = makeInlineOpener(panel);
   const frame = sidebarFrame({
-    headerIcon: emoji ? el('span', 'shrink-0 text-4xl leading-none', emoji) : folderIconEl('h-[38px] w-[46px] shrink-0', true),
+    headerIcon: emoji ? el('span', 'shrink-0 text-2xl leading-none', emoji) : folderIconEl('h-[28px] w-[34px] shrink-0', true),
     title: item.name,
     subtitle: meta.name ? `A Folder from ${meta.name}` : 'A shared Folder',
     sections: [items.map((child) => itemRow(child, openInline))],
