@@ -125,6 +125,12 @@ export function createApp(options) {
     });
   }
 
+  function cacheControl(meta) {
+    const cap = 3600;
+    const remaining = meta?.expiresAt ? Math.floor((Date.parse(meta.expiresAt) - Date.now()) / 1000) : cap;
+    return `public, max-age=${Math.max(0, Math.min(cap, remaining))}`;
+  }
+
   async function handlePage(typeKey, id, slug) {
     const record = await getLive(id, storage.readText);
     if (!record) return Response.redirect(NOT_FOUND_REDIRECT, 302);
@@ -136,7 +142,9 @@ export function createApp(options) {
     }
     const item = (doc.shared ?? []).find((entry) => entry?.type === typeKey);
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
-    return htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, `/${slug}/${id}/data`));
+    const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, `/${slug}/${id}/data`));
+    res.headers.set('cache-control', cacheControl(record.meta));
+    return res;
   }
 
   async function handleData(id) {
@@ -148,6 +156,7 @@ export function createApp(options) {
         'content-type': 'application/json; charset=utf-8',
         'x-content-type-options': 'nosniff',
         'access-control-allow-origin': '*',
+        'cache-control': cacheControl(record.meta),
       },
     });
   }
