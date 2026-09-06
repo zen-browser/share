@@ -105,19 +105,41 @@ function faviconEl(tab) {
   const image = typeof tab.image === 'string' && /^(https?:\/\/|data:image\/)/i.test(tab.image) ? tab.image : null;
   const host = hostOf(tab.url);
   const src = image ?? (host ? `https://icons.duckduckgo.com/ip3/${host}.ico` : null);
-  if (!src) return icon(GLOBE_ICON, 'h-5 w-5 shrink-0 text-zinc-500');
-  const img = el('img', 'h-5 w-5 shrink-0 rounded object-contain');
+  if (!src) return icon(GLOBE_ICON, 'h-4 w-4 shrink-0 text-zinc-500');
+  const img = el('img', 'h-4 w-4 shrink-0 rounded object-contain');
   img.src = src;
   img.alt = '';
   img.loading = 'lazy';
   return img;
 }
 
-const ROW = 'flex select-none items-center gap-3 rounded-xl p-2.5 my-1 text-xs leading-[1.15em] text-zinc-800 min-w-0';
+const ROW = 'flex select-none items-center gap-3 rounded-xl p-2.5 pr-1 my-1 text-xs leading-[1.15em] text-zinc-800 min-w-0';
+
+const mobile = () => window.matchMedia('(max-width: 767px)').matches;
+
+function openNewTab(url) {
+  const href = httpUrl(url);
+  if (href) window.open(href, '_blank', 'noopener');
+}
+
+function linkRow(tab) {
+  const href = httpUrl(tab.url);
+  const row = el(href ? 'a' : 'div', `${ROW.replace('p-2.5', 'py-2.5 px-1.5')} font-medium hover:bg-black/5`);
+  if (href) {
+    row.href = href;
+    row.target = '_blank';
+    row.rel = 'noopener noreferrer';
+  }
+  const fav = faviconEl(tab);
+  fav.classList.add('ml-1');
+  row.append(fav);
+  row.append(el('span', 'min-w-0 flex-1 truncate', tab.label?.trim() || hostOf(tab.url) || tab.url));
+  return row;
+}
 
 function tabRow(tab, onOpen) {
   const href = httpUrl(tab.url);
-  const row = el('div', `${ROW.replace('p-2.5', 'py-2.5 px-1.5')} group cursor-pointer font-medium hover:bg-white/25`);
+  const row = el('div', `${ROW.replace('p-2.5', 'py-2.5 px-1.5')} group cursor-pointer font-medium hover:bg-black/5`);
   const fav = faviconEl(tab);
   fav.classList.add('ml-1');
   row.append(fav);
@@ -134,7 +156,7 @@ function tabRow(tab, onOpen) {
   }
   row.tabIndex = 0;
   row.setAttribute('role', 'button');
-  const open = () => onOpen(tab, row);
+  const open = () => (mobile() ? openNewTab(tab.url) : onOpen(tab, row));
   row.addEventListener('click', open);
   row.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -146,7 +168,7 @@ function tabRow(tab, onOpen) {
 }
 
 function splitRow(split, onOpen) {
-  const row = el('div', `${ROW} group cursor-pointer font-medium hover:bg-white/40`);
+  const row = el('div', `${ROW} group cursor-pointer font-medium hover:bg-black/5`);
   const wrap = el('div', 'flex min-w-0 flex-1 items-center gap-2');
   (split.tabs ?? []).forEach((tab, i) => {
     if (i > 0) wrap.append(el('span', 'h-4 w-px shrink-0 self-center bg-black/15'));
@@ -158,7 +180,7 @@ function splitRow(split, onOpen) {
   row.append(wrap);
   row.tabIndex = 0;
   row.setAttribute('role', 'button');
-  const open = () => onOpen(split, row);
+  const open = () => (mobile() ? openNewTab(split.tabs?.[0]?.url) : onOpen(split, row));
   row.addEventListener('click', open);
   row.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -171,14 +193,14 @@ function splitRow(split, onOpen) {
 
 function folderRow(folder, onOpen) {
   const details = el('details');
-  const summary = el('summary', `${ROW} cursor-pointer list-none font-semibold hover:bg-white/40 [&::-webkit-details-marker]:hidden h-[40px]`);
+  const summary = el('summary', `pl-[4px] ${ROW} gap-[4px] cursor-pointer list-none font-semibold hover:bg-black/5 [&::-webkit-details-marker]:hidden h-[40px]`);
   const emoji = folder.icon?.trim();
   const iconClass = 'h-[30px] w-[30px] shrink-0';
   let fico = emoji ? el('span', 'w-[30px] shrink-0 text-center text-2xl', emoji) : folderIconEl(iconClass, false);
   summary.append(fico);
   summary.append(el('span', 'truncate', folder.name));
   details.append(summary);
-  const kids = el('div', 'pl-7');
+  const kids = el('div', 'pl-6');
   for (const item of folder.items ?? []) kids.append(itemRow(item, onOpen));
   details.append(kids);
   if (!emoji) {
@@ -195,6 +217,15 @@ function itemRow(item, onOpen) {
   if (item?.type === 'folder') return folderRow(item, onOpen);
   if (item?.type === 'splitView') return splitRow(item, onOpen);
   return tabRow(item, onOpen);
+}
+
+const isPinned = (item) => item?.type === 'folder' || item?.isPinned === true;
+
+function pinnedSections(items, onOpen) {
+  return [
+    items.filter(isPinned).map((i) => itemRow(i, onOpen)),
+    items.filter((i) => !isPinned(i)).map((i) => itemRow(i, onOpen)),
+  ];
 }
 
 async function fetchPreview(url) {
@@ -305,7 +336,7 @@ function emptyViewEl() {
 }
 
 function splitViewEl(tabs, leftGap = false) {
-  const panes = el('div', 'grid min-w-0 flex-1 gap-2 p-2' + (leftGap ? ' pl-0' : ''));
+  const panes = el('div', 'hidden min-w-0 flex-1 gap-2 p-2 md:grid' + (leftGap ? ' pl-0' : ''));
   panes.style.gridTemplateColumns = `repeat(${tabs.length || 1}, minmax(0, 1fr))`;
   for (const tab of tabs) {
     const pane = el('section', 'flex min-w-0 flex-col overflow-hidden rounded-xl');
@@ -324,9 +355,9 @@ function makeInlineOpener(panel) {
   let active = null;
   return (entry, row) => {
     if (row && row === active) return;
-    if (active) active.classList.remove('bg-white/50');
+    if (active) active.classList.remove('!bg-white');
     if (row) {
-      row.classList.add('bg-white/50');
+      row.classList.add('!bg-white');
       active = row;
     }
     if (entry.type === 'splitView') {
@@ -354,12 +385,12 @@ function ensureWinBgStyle() {
 
 function sidebarFrame({ headerIcon, title, subtitle, sections, frameBackground, panel }) {
   ensureWinBgStyle();
-  const frame = el('main', 'win-bg flex h-full overflow-hidden rounded-2xl shadow-2xl shadow-black/20');
+  const frame = el('main', 'win-bg flex h-full overflow-hidden rounded-none md:rounded-2xl md:shadow-2xl md:shadow-black/20');
   frame.style.setProperty('--win-bg', frameBackground);
   frame.style.setProperty('--win-op', '0.6');
 
-  const side = el('aside', 'flex w-[280px] shrink-0 flex-col');
-  const head = el('header', 'flex shrink-0 items-center gap-3 border-b border-black/10 px-[18px] pb-4 pt-5');
+  const side = el('aside', 'flex w-full shrink-0 flex-col md:w-[280px]');
+  const head = el('header', 'flex shrink-0 items-center gap-3 border-b border-black/5 px-[8px] mx-2.5 pb-4 pt-5');
   head.append(headerIcon);
   const htext = el('div', 'min-w-0');
   htext.append(el('h1', 'truncate text-[15px] font-bold leading-tight', title));
@@ -369,11 +400,12 @@ function sidebarFrame({ headerIcon, title, subtitle, sections, frameBackground, 
 
   const list = el('div', 'min-h-0 flex-1 overflow-y-auto px-2.5 py-2.5');
   sections.filter((s) => s.length).forEach((section, i) => {
-    if (i > 0) list.append(el('hr', '-mx-2.5 my-2.5 border-0 border-t border-black/10'));
+    if (i > 0) list.append(el('hr', 'my-2.5 border-0 border-t border-black/5'));
     for (const row of section) list.append(row);
   });
   side.append(list);
   frame.append(side);
+  panel.classList.add('hidden', 'md:flex');
   frame.append(panel);
   return frame;
 }
@@ -404,14 +436,11 @@ function renderSpace(item, meta) {
     headerIcon: icon(STACK_ICON, 'h-[22px] w-[22px] shrink-0 text-zinc-700'),
     title: item.name,
     subtitle: meta.name ? `A Space from ${meta.name}` : 'A shared Space',
-    sections: [
-      items.filter((i) => i?.type === 'folder').map((f) => folderRow(f, openInline)),
-      items.filter((i) => i?.type !== 'folder').map((i) => itemRow(i, openInline)),
-    ],
+    sections: pinnedSections(items, openInline),
     frameBackground,
     panel,
   });
-  const wrap = el('div', 'h-screen overflow-hidden p-[44px]');
+  const wrap = el('div', 'h-screen overflow-hidden p-0 md:p-[44px]');
   wrap.append(frame);
   const holder = document.createDocumentFragment();
   holder.append(wrap, downloadPillEl(`Open this Space in Zen`));
@@ -429,11 +458,11 @@ function renderFolder(item, meta) {
     headerIcon: emoji ? el('span', 'shrink-0 text-2xl leading-none', emoji) : folderIconEl('h-[28px] w-[34px] shrink-0', true),
     title: item.name,
     subtitle: meta.name ? `A Folder from ${meta.name}` : 'A shared Folder',
-    sections: [items.map((child) => itemRow(child, openInline))],
+    sections: pinnedSections(items, openInline),
     frameBackground: BRAND_FRAME,
     panel,
   });
-  const wrap = el('div', 'h-screen overflow-hidden p-[44px]');
+  const wrap = el('div', 'h-screen overflow-hidden p-0 md:p-[44px]');
   wrap.append(frame);
   const holder = document.createDocumentFragment();
   holder.append(wrap, downloadPillEl(`Open this Folder in Zen`));
@@ -444,10 +473,22 @@ function renderSplitView(item) {
   document.body.style.background = BRAND_PAGE;
   const tabs = item.tabs ?? [];
 
-  const wrap = el('div', 'min-h-screen overflow-hidden p-[44px]');
-  const frame = el('main', 'flex h-[calc(100vh-88px)] flex-col overflow-hidden rounded-2xl shadow-2xl shadow-black/20');
+  const wrap = el('div', 'h-screen overflow-hidden p-0 md:p-[44px]');
+  const frame = el('main', 'flex h-full flex-col overflow-hidden rounded-none md:rounded-2xl md:shadow-2xl md:shadow-black/20');
   frame.style.background = tint(10);
-  frame.append(splitViewEl(tabs));
+
+  const mlist = el('div', 'flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-2.5 md:hidden');
+  const mhead = el('header', 'flex shrink-0 items-center gap-3 border-b border-black/10 px-[18px] pb-4 pt-5');
+  mhead.append(icon(SPLIT_ICON, 'h-[22px] w-[22px] shrink-0 text-zinc-700'));
+  const mht = el('div', 'min-w-0');
+  mht.append(el('h1', 'truncate text-[15px] font-bold leading-tight', 'Split view'));
+  mht.append(el('p', 'mt-0.5 truncate text-xs text-muted', `${tabs.length} tabs`));
+  mhead.append(mht);
+  const mbody = el('div', 'px-0 pt-2');
+  for (const tab of tabs) mbody.append(linkRow(tab));
+  mlist.append(mhead, mbody);
+
+  frame.append(mlist, splitViewEl(tabs));
   wrap.append(frame);
 
   const holder = document.createDocumentFragment();
@@ -459,24 +500,26 @@ function downloadPillEl(message) {
   if (!document.getElementById('share-kf')) {
     const style = document.createElement('style');
     style.id = 'share-kf';
-    style.textContent = '@keyframes tryZenIn{from{opacity:0;transform:translate(-50%,24px)}to{opacity:1;transform:translate(-50%,0)}}';
+    style.textContent = '@keyframes tryZenIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}';
     document.head.append(style);
   }
   const themed = `color-mix(in srgb, ${accentColor} 80%, black)`;
-  const pill = el('div', 'fixed bottom-5 left-1/2 z-50 flex items-center gap-3 rounded-2xl py-2 pl-5 pr-2.5 text-[15px] text-white shadow-xl');
+  const outer = el('div', 'fixed bottom-5 left-1/2 z-50 max-w-[calc(100vw_-_1.5rem)] -translate-x-1/2');
+  const pill = el('div', 'flex items-center gap-3 rounded-2xl py-2 pl-5 pr-2.5 text-[15px] text-white shadow-xl');
   pill.style.background = themed;
   pill.style.animation = 'tryZenIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 350ms both';
-  pill.append(el('span', 'font-extrabold', 'share'));
-  pill.append(el('span', 'opacity-60', '❯'));
-  pill.append(el('span', '', message));
-  const tryBtn = el('a', 'rounded-[10px] bg-white px-5 py-2 font-bold transition-transform duration-150 hover:scale-105 active:scale-95');
+  pill.append(el('span', 'shrink-0 font-extrabold', 'share'));
+  pill.append(el('span', 'shrink-0 opacity-60', '❯'));
+  pill.append(el('span', 'min-w-0 truncate', message));
+  const tryBtn = el('a', 'shrink-0 rounded-[10px] bg-white px-5 py-2 font-bold transition-transform duration-150 hover:scale-105 active:scale-95');
   tryBtn.style.color = themed;
   tryBtn.textContent = 'Try Zen';
   tryBtn.href = 'https://zen-browser.app';
   tryBtn.target = '_blank';
   tryBtn.rel = 'noopener noreferrer';
   pill.append(tryBtn);
-  return pill;
+  outer.append(pill);
+  return outer;
 }
 
 const RENDERERS = { space: renderSpace, folder: renderFolder, splitView: renderSplitView };

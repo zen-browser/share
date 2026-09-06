@@ -107,7 +107,6 @@ export function createApp(options) {
       ...meta,
       url: `/api/shares/${id}`,
       webUrl: `/${slug}/${id}`,
-      dataUrl: `/${slug}/${id}/data`,
     });
   }
 
@@ -131,7 +130,7 @@ export function createApp(options) {
     return `public, max-age=${Math.max(0, Math.min(cap, remaining))}`;
   }
 
-  async function handlePage(typeKey, id, slug) {
+  async function handlePage(typeKey, id) {
     const record = await getLive(id, storage.readText);
     if (!record) return Response.redirect(NOT_FOUND_REDIRECT, 302);
     let doc;
@@ -142,23 +141,9 @@ export function createApp(options) {
     }
     const item = (doc.shared ?? []).find((entry) => entry?.type === typeKey);
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
-    const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, `/${slug}/${id}/data`));
+    const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}));
     res.headers.set('cache-control', cacheControl(record.meta));
     return res;
-  }
-
-  async function handleData(id) {
-    const record = await getLive(id, storage.readStream);
-    if (!record) throw new HttpError(404, 'share not found');
-    return new Response(record.stream, {
-      status: 200,
-      headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'x-content-type-options': 'nosniff',
-        'access-control-allow-origin': '*',
-        'cache-control': cacheControl(record.meta),
-      },
-    });
   }
 
   return async function app(request) {
@@ -167,15 +152,11 @@ export function createApp(options) {
       if (url.pathname === '/') return Response.redirect(HOME_REDIRECT, 302);
       if (request.method === 'GET' && url.pathname === '/health') return jsonResponse(200, { ok: true });
 
-      const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})(\/data)?$/);
+      const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})$/);
       if (request.method === 'GET' && publicMatch && SLUG_TO_TYPE[publicMatch[1]]) {
         const id = normalizeId(publicMatch[2]);
-        if (!id) {
-          if (publicMatch[3]) throw new HttpError(404, 'share not found');
-          return Response.redirect(NOT_FOUND_REDIRECT, 302);
-        }
-        if (publicMatch[3]) return await handleData(id);
-        return await handlePage(SLUG_TO_TYPE[publicMatch[1]], id, publicMatch[1]);
+        if (!id) return Response.redirect(NOT_FOUND_REDIRECT, 302);
+        return await handlePage(SLUG_TO_TYPE[publicMatch[1]], id);
       }
 
       if (!url.pathname.startsWith('/api/')) return Response.redirect(NOT_FOUND_REDIRECT, 302);
