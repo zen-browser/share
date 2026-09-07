@@ -50,6 +50,7 @@ export function createApp(options) {
     maxBodyBytes = 25 * 1024 * 1024,
     retentionDays = 30,
     rateLimit = null,
+    renderOg = null,
   } = options;
 
   if (!apiKey) throw new Error('apiKey is required');
@@ -102,7 +103,7 @@ export function createApp(options) {
 
     await storage.write(id, body.text, meta, permanent ? null : Math.round(retentionDays * 86_400));
 
-    const slug = TYPE_SLUGS[data.shared[0].type];
+    const slug = TYPE_SLUGS[data.shared.type];
     return jsonResponse(201, {
       ...meta,
       url: `/api/shares/${id}`,
@@ -130,7 +131,49 @@ export function createApp(options) {
     return `public, max-age=${Math.max(0, Math.min(cap, remaining))}`;
   }
 
-  async function handlePage(typeKey, id) {
+  const LABELS = { space: 'Space', folder: 'Folder', splitView: 'Split View' };
+
+  function escapeAttr(v) {
+    return String(v).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  }
+
+  function countTabs(node) {
+    let n = 0;
+    const walk = (x) => {
+      if (Array.isArray(x)) x.forEach(walk);
+      else if (x && typeof x === 'object') {
+        if (x.type === 'tab') n += 1;
+        else {
+          if (x.items) walk(x.items);
+          if (x.tabs) walk(x.tabs);
+        }
+      }
+    };
+    walk(node);
+    return n;
+  }
+
+  function ogTags(typeKey, item, meta, ogImageUrl) {
+    const label = LABELS[typeKey] || 'Share';
+    const title = meta?.name ? `A ${label} from ${meta.name}` : `A shared ${label}`;
+    const tabs = countTabs(item);
+    const description = `${tabs} ${tabs === 1 ? 'tab' : 'tabs'} shared`;
+    const t = escapeAttr(title);
+    const d = escapeAttr(description);
+    const img = escapeAttr(ogImageUrl);
+    return (
+      `<meta property="og:type" content="website">` +
+      `<meta property="og:title" content="${t}">` +
+      `<meta property="og:description" content="${d}">` +
+      `<meta property="og:image" content="${img}">` +
+      `<meta name="twitter:card" content="summary_large_image">` +
+      `<meta name="twitter:title" content="${t}">` +
+      `<meta name="twitter:description" content="${d}">` +
+      `<meta name="twitter:image" content="${img}">`
+    );
+  }
+
+  async function handlePage(typeKey, id, slug, origin) {
     const record = await getLive(id, storage.readText);
     if (!record) return Response.redirect(NOT_FOUND_REDIRECT, 302);
     let doc;
@@ -139,9 +182,27 @@ export function createApp(options) {
     } catch {
       return Response.redirect(NOT_FOUND_REDIRECT, 302);
     }
-    const item = (doc.shared ?? []).find((entry) => entry?.type === typeKey);
+    const item = doc.shared?.type === typeKey ? doc.shared : null;
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
-    const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}));
+    const og = renderOg ? ogTags(typeKey, item, record.meta ?? {}, `${origin}/${slug}/${id}/og`) : '';
+    const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, og));
+    res.headers.set('cache-control', cacheControl(record.meta));
+    return res;
+  }
+
+  async function handleOg(typeKey, id) {
+    if (!renderOg) throw new HttpError(404, 'not found');
+    const record = await getLive(id, storage.readText);
+    if (!record) throw new HttpError(404, 'share not found');
+    let doc;
+    try {
+      doc = JSON.parse(record.text);
+    } catch {
+      throw new HttpError(404, 'share not found');
+    }
+    const item = doc.shared?.type === typeKey ? doc.shared : null;
+    if (!item) throw new HttpError(404, 'share not found');
+    const res = await renderOg({ type: typeKey, item, meta: record.meta ?? {} });
     res.headers.set('cache-control', cacheControl(record.meta));
     return res;
   }
@@ -152,11 +213,14 @@ export function createApp(options) {
       if (url.pathname === '/') return Response.redirect(HOME_REDIRECT, 302);
       if (request.method === 'GET' && url.pathname === '/health') return jsonResponse(200, { ok: true });
 
-      const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})$/);
+      const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})(\/og)?$/);
       if (request.method === 'GET' && publicMatch && SLUG_TO_TYPE[publicMatch[1]]) {
         const id = normalizeId(publicMatch[2]);
-        if (!id) return Response.redirect(NOT_FOUND_REDIRECT, 302);
-        return await handlePage(SLUG_TO_TYPE[publicMatch[1]], id);
+        if (!id) {
+          return Response.redirect(NOT_FOUND_REDIRECT, 302);
+        }
+        if (publicMatch[3]) return await handleOg(SLUG_TO_TYPE[publicMatch[1]], id);
+        return await handlePage(SLUG_TO_TYPE[publicMatch[1]], id, publicMatch[1], url.origin);
       }
 
       if (!url.pathname.startsWith('/api/')) return Response.redirect(NOT_FOUND_REDIRECT, 302);

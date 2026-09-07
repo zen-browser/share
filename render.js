@@ -1,7 +1,5 @@
-
-export function renderSharePage(template, typeKey, item, meta) {
+export function renderSharePage(template, typeKey, item, meta, ogTags = '') {
   const payload = { type: typeKey, item, meta };
-  // <-escape so user data can never close the script tag.
   const data = JSON.stringify(payload).replaceAll('<', '\\u003c');
-  return template.replace('{{data}}', () => data);
+  return template.replace('{{data}}', () => data).replace('</head>', () => `${ogTags}</head>`);
 }

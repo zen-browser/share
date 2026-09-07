@@ -1,4 +1,5 @@
 import { createApp } from './app.js';
+import { renderOg } from './og.js';
 import template from './template.html';
 
 const KV_VALUE_LIMIT = 25 * 1024 * 1024;
@@ -43,6 +44,7 @@ export default {
       retentionDays: Number(env.RETENTION_DAYS ?? 30),
       storage: kvStorage(env.SHARES),
       template,
+      renderOg,
       rateLimit: env.CREATE_LIMIT ? async (key) => (await env.CREATE_LIMIT.limit({ key })).success : null,
     });
     return app(request);

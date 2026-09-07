@@ -13,7 +13,8 @@
   },
   "license": "MPL-2.0",
   "dependencies": {
-    "@cfworker/json-schema": "^4.1.1"
+    "@cfworker/json-schema": "^4.1.1",
+    "workers-og": "^0.0.27"
   },
   "devDependencies": {
     "wrangler": "^4.129.0"
