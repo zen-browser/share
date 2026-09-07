@@ -113,7 +113,7 @@ function faviconEl(tab) {
   return img;
 }
 
-const ROW = 'flex select-none items-center gap-3 rounded-xl p-2.5 pr-1 my-1 text-xs leading-[1.15em] text-zinc-800 min-w-0';
+const ROW = 'flex select-none items-center gap-3 rounded-xl p-2.5 pr-1 my-1 text-xs leading-[1.15em] text-zinc-800 min-w-0 h-[40px]';
 
 const mobile = () => window.matchMedia('(max-width: 767px)').matches;
 
@@ -145,7 +145,7 @@ function tabRow(tab, onOpen) {
   row.append(fav);
   row.append(el('span', 'min-w-0 flex-1 truncate', tab.label?.trim() || hostOf(tab.url) || tab.url));
   if (href) {
-    const arrow = el('a', 'shrink-0 -my-2 rounded-lg p-2 text-zinc-500 opacity-0 hover:bg-black/10 group-hover:opacity-100');
+    const arrow = el('a', 'shrink-0 -my-2 rounded-lg p-2 text-muted hidden hover:bg-black/10 group-hover:flex');
     arrow.append(icon(ARROW_ICON, 'block h-[18px] w-[18px]'));
     arrow.href = href;
     arrow.target = '_blank';
@@ -193,7 +193,7 @@ function splitRow(split, onOpen) {
 
 function folderRow(folder, onOpen) {
   const details = el('details');
-  const summary = el('summary', `pl-[4px] ${ROW} gap-[4px] cursor-pointer list-none font-semibold hover:bg-black/5 [&::-webkit-details-marker]:hidden h-[40px]`);
+  const summary = el('summary', `pl-[4px] ${ROW} gap-[4px] cursor-pointer list-none font-semibold hover:bg-black/5 [&::-webkit-details-marker]:hidden`);
   const emoji = folder.icon?.trim();
   const iconClass = 'h-[30px] w-[30px] shrink-0';
   let fico = emoji ? el('span', 'w-[30px] shrink-0 text-center text-2xl', emoji) : folderIconEl(iconClass, false);
@@ -393,8 +393,12 @@ function sidebarFrame({ headerIcon, title, subtitle, sections, frameBackground, 
   const head = el('header', 'flex shrink-0 items-center gap-3 border-b border-black/5 px-[8px] mx-2.5 pb-4 pt-5');
   head.append(headerIcon);
   const htext = el('div', 'min-w-0');
-  htext.append(el('h1', 'truncate text-[15px] font-bold leading-tight', title));
-  htext.append(el('p', 'mt-0.5 truncate text-xs text-muted', subtitle));
+  const h1 = el('h1', 'truncate text-[15px] font-bold leading-tight', title);
+  h1.style.color = `color-mix(in srgb, ${accentColor} 35%, #18181b)`;
+  const sub = el('p', 'mt-0.5 truncate text-xs', subtitle);
+  sub.style.color = `color-mix(in srgb, ${accentColor} 45%, #71717a)`;
+  htext.append(h1);
+  htext.append(sub);
   head.append(htext);
   side.append(head);
 
@@ -432,8 +436,10 @@ function renderSpace(item, meta) {
   const panel = el('section', 'flex min-w-0 flex-1 flex-col');
   panel.append(emptyViewEl());
   const openInline = makeInlineOpener(panel);
+  const spaceIcon = icon(STACK_ICON, 'h-[22px] w-[22px] shrink-0');
+  spaceIcon.style.color = `color-mix(in srgb, ${accentColor} 62%, black)`;
   const frame = sidebarFrame({
-    headerIcon: icon(STACK_ICON, 'h-[22px] w-[22px] shrink-0 text-zinc-700'),
+    headerIcon: spaceIcon,
     title: item.name,
     subtitle: meta.name ? `A Space from ${meta.name}` : 'A shared Space',
     sections: pinnedSections(items, openInline),
