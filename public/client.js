@@ -1,17 +1,17 @@
 const share = JSON.parse(document.getElementById('share-data').textContent);
 
-const BRAND_PAGE = '#d7e9d9';
-const BRAND_FRAME = '#eef6ef';
+const BRAND_PAGE = '#e2e6d9';
+const BRAND_FRAME = '#eff1ea';
 
 const DEFAULT_THEME_COLORS = [
-  { c: [134, 213, 143], isPrimary: true },
-  { c: [180, 226, 160] },
-  { c: [110, 196, 150] },
+  { c: [130, 147, 100], isPrimary: true },
+  { c: [160, 175, 132] },
+  { c: [110, 128, 84] },
 ];
-const PILL_GREEN = '#2f9e44';
+const PILL_GREEN = '#829364';
 
 const STACK_ICON =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="6.5" y="3.5" width="14" height="14" rx="2.5"/><path d="M17.5 20.5h-11a3 3 0 0 1-3-3v-11" stroke-linecap="round"/></svg>';
+  '<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><mask id="zsm"><rect x="-10" y="-10" width="148" height="148" fill="white"/><rect x="41.998" y="31.25" width="70.04" height="89.36" rx="14" fill="black"/></mask></defs><g mask="url(#zsm)"><rect transform="translate(51.28 61.69) rotate(-17.5) translate(-35.022 -44.68)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="none" stroke="currentColor" stroke-width="7.1"/></g><rect transform="translate(41.998 31.25)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="none" stroke="currentColor" stroke-width="7.1"/></svg>';
 const GLOBE_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.3 3.8 5.2 3.8 8.5s-1.3 6.2-3.8 8.5c-2.5-2.3-3.8-5.2-3.8-8.5s1.3-6.2 3.8-8.5z"/></svg>';
 const ARROW_ICON =
@@ -32,7 +32,7 @@ function icon(markup, className) {
   return span;
 }
 
-let accentColor = 'rgb(52, 168, 83)';
+let accentColor = 'rgb(130, 147, 100)';
 let folderIconSeq = 0;
 function folderIconEl(className, open = false) {
   const a = accentColor;

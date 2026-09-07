@@ -33,7 +33,7 @@ const darken = (c, amt) => {
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 };
 
-const BRAND_GREEN = [52, 168, 83];
+const BRAND_GREEN = [130, 147, 100];
 
 function countTabs(node) {
   let n = 0;
@@ -69,9 +69,9 @@ function iconFor(type, primary) {
     };
   }
   return {
-    width: 140,
-    height: 140,
-    svg: `<svg width="140" height="140" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="14" width="30" height="40" rx="7" transform="rotate(-11 27 34)" fill="${light}" stroke="${a}" stroke-width="4.5"/><rect x="24" y="12" width="30" height="40" rx="7" fill="white" stroke="${a}" stroke-width="4.5"/></svg>`,
+    width: 150,
+    height: 150,
+    svg: `<svg width="150" height="150" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><mask id="zog"><rect x="-10" y="-10" width="148" height="148" fill="white"/><rect x="41.998" y="31.25" width="70.04" height="89.36" rx="14" fill="black"/></mask></defs><g mask="url(#zog)"><rect transform="translate(51.28 61.69) rotate(-17.5) translate(-35.022 -44.68)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="none" stroke="${a}" stroke-width="7.1"/></g><rect transform="translate(41.998 31.25)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="none" stroke="${a}" stroke-width="7.1"/></svg>`,
   };
 }
 
