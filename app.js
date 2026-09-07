@@ -41,6 +41,12 @@ function normalizeId(value) {
   return ID_PATTERN.test(value) ? value.toUpperCase() : null;
 }
 
+function sharedItem(doc, typeKey) {
+  const shared = doc?.shared;
+  if (Array.isArray(shared)) return shared.find((entry) => entry?.type === typeKey) ?? null;
+  return shared?.type === typeKey ? shared : null;
+}
+
 export function createApp(options) {
   const {
     apiKey,
@@ -182,7 +188,7 @@ export function createApp(options) {
     } catch {
       return Response.redirect(NOT_FOUND_REDIRECT, 302);
     }
-    const item = doc.shared?.type === typeKey ? doc.shared : null;
+    const item = sharedItem(doc, typeKey);
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
     const og = renderOg ? ogTags(typeKey, item, record.meta ?? {}, `${origin}/${slug}/${id}/og`) : '';
     const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, og));
@@ -200,7 +206,7 @@ export function createApp(options) {
     } catch {
       throw new HttpError(404, 'share not found');
     }
-    const item = doc.shared?.type === typeKey ? doc.shared : null;
+    const item = sharedItem(doc, typeKey);
     if (!item) throw new HttpError(404, 'share not found');
     const res = await renderOg({ type: typeKey, item, meta: record.meta ?? {} });
     res.headers.set('cache-control', cacheControl(record.meta));
