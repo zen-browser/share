@@ -193,6 +193,7 @@ export function createApp(options) {
     const og = renderOg ? ogTags(typeKey, item, record.meta ?? {}, `${origin}/${slug}/${id}/og`) : '';
     const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, og));
     res.headers.set('cache-control', cacheControl(record.meta));
+    res.headers.set('x-robots-tag', 'noindex, nofollow');
     return res;
   }
 
@@ -210,6 +211,7 @@ export function createApp(options) {
     if (!item) throw new HttpError(404, 'share not found');
     const res = await renderOg({ type: typeKey, item, meta: record.meta ?? {} });
     res.headers.set('cache-control', cacheControl(record.meta));
+    res.headers.set('x-robots-tag', 'noindex, nofollow');
     return res;
   }
 
@@ -218,6 +220,12 @@ export function createApp(options) {
     try {
       if (url.pathname === '/') return Response.redirect(HOME_REDIRECT, 302);
       if (request.method === 'GET' && url.pathname === '/health') return jsonResponse(200, { ok: true });
+      if (request.method === 'GET' && url.pathname === '/robots.txt') {
+        return new Response('User-agent: *\nDisallow: /\n', {
+          status: 200,
+          headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' },
+        });
+      }
 
       const publicMatch = url.pathname.match(/^\/([a-z-]+)\/([0-9A-Za-z-]{4,64})(\/og)?$/);
       if (request.method === 'GET' && publicMatch && SLUG_TO_TYPE[publicMatch[1]]) {
