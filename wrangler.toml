@@ -22,4 +22,4 @@ RETENTION_DAYS = "30"
 name = "CREATE_LIMIT"
 type = "ratelimit"
 namespace_id = "1001"
-simple = { limit = 10, period = 60 }
+simple = { limit = 2, period = 60 }
