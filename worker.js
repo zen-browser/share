@@ -30,7 +30,7 @@ function kvStorage(kv) {
 let app;
 
 export default {
-  fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (!env.API_KEY) {
       return new Response(JSON.stringify({ error: 'server misconfigured: set the API_KEY secret' }), {
         status: 500,
@@ -47,6 +47,17 @@ export default {
       renderOg,
       rateLimit: env.CREATE_LIMIT ? async (key) => (await env.CREATE_LIMIT.limit({ key })).success : null,
     });
-    return app(request);
+
+    const cacheable = request.method === 'GET';
+    const cache = caches.default;
+    if (cacheable) {
+      const hit = await cache.match(request);
+      if (hit) return hit;
+    }
+    const response = await app(request);
+    if (cacheable && response.status === 200 && /max-age=[1-9]/.test(response.headers.get('cache-control') ?? '')) {
+      ctx.waitUntil(cache.put(request, response.clone()));
+    }
+    return response;
   },
 };
