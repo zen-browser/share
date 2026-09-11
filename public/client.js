@@ -11,7 +11,7 @@ const DEFAULT_THEME_COLORS = [
 const PILL_GREEN = '#829364';
 
 const STACK_ICON =
-  '<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><mask id="zsm"><rect x="-10" y="-10" width="148" height="148" fill="white"/><rect x="41.998" y="31.25" width="70.04" height="89.36" rx="14" fill="black"/></mask></defs><g mask="url(#zsm)"><rect transform="translate(51.28 61.69) rotate(-17.5) translate(-35.022 -44.68)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="white" stroke="currentColor" stroke-width="7.1"/></g><rect transform="translate(41.998 31.25)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="none" stroke="currentColor" stroke-width="7.1"/></svg>';
+  '<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><mask id="zsm"><rect x="-10" y="-10" width="148" height="148" fill="white"/><rect x="41.998" y="31.25" width="70.04" height="89.36" rx="14" fill="black"/></mask></defs><g mask="url(#zsm)"><rect transform="translate(51.28 61.69) rotate(-17.5) translate(-35.022 -44.68)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="white" stroke="currentColor" stroke-width="7.1"/></g><rect transform="translate(41.998 31.25)" x="3.55" y="3.55" width="62.94" height="82.26" rx="10.45" fill="white" stroke="currentColor" stroke-width="7.1"/></svg>';
 const GLOBE_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.3 3.8 5.2 3.8 8.5s-1.3 6.2-3.8 8.5c-2.5-2.3-3.8-5.2-3.8-8.5s1.3-6.2 3.8-8.5z"/></svg>';
 const ARROW_ICON =

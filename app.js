@@ -243,7 +243,7 @@ export function createApp(options) {
       }
 
       if (request.method === 'POST' && url.pathname === '/api/shares') {
-        if (!viaSecretKey && rateLimit) {
+        if (rateLimit) {
           const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
           if (!(await rateLimit(`create:${ip}`))) {
             throw new HttpError(429, 'too many shares created, try again in a minute');
