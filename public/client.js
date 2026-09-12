@@ -194,22 +194,19 @@ function splitRow(split, onOpen) {
 function folderRow(folder, onOpen) {
   const details = el('details');
   const summary = el('summary', `pl-[4px] ${ROW} gap-[4px] cursor-pointer list-none font-semibold hover:bg-black/5 [&::-webkit-details-marker]:hidden`);
-  const emoji = folder.icon?.trim();
   const iconClass = 'h-[30px] w-[30px] shrink-0';
-  let fico = emoji ? el('span', 'w-[30px] shrink-0 text-center text-2xl', emoji) : folderIconEl(iconClass, false);
+  let fico = folderIconEl(iconClass, false);
   summary.append(fico);
   summary.append(el('span', 'truncate', folder.name));
   details.append(summary);
   const kids = el('div', 'pl-6');
   for (const item of folder.items ?? []) kids.append(itemRow(item, onOpen));
   details.append(kids);
-  if (!emoji) {
-    details.addEventListener('toggle', () => {
-      const next = folderIconEl(iconClass, details.open);
-      fico.replaceWith(next);
-      fico = next;
-    });
-  }
+  details.addEventListener('toggle', () => {
+    const next = folderIconEl(iconClass, details.open);
+    fico.replaceWith(next);
+    fico = next;
+  });
   return details;
 }
 
@@ -455,13 +452,12 @@ function renderSpace(item, meta) {
 
 function renderFolder(item, meta) {
   document.body.style.background = BRAND_PAGE;
-  const emoji = item.icon?.trim();
   const items = item.items ?? [];
   const panel = el('section', 'flex min-w-0 flex-1 flex-col');
   panel.append(emptyViewEl());
   const openInline = makeInlineOpener(panel);
   const frame = sidebarFrame({
-    headerIcon: emoji ? el('span', 'shrink-0 text-2xl leading-none', emoji) : folderIconEl('h-[28px] w-[34px] shrink-0', true),
+    headerIcon: folderIconEl('h-[28px] w-[34px] shrink-0', true),
     title: item.name,
     subtitle: meta.name ? `A Folder from ${meta.name}` : 'A shared Folder',
     sections: pinnedSections(items, openInline),

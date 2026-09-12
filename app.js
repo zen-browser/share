@@ -1,5 +1,5 @@
 import { keysMatch, matchesAny } from './auth.js';
-import { concatStreams, htmlResponse, HttpError, jsonResponse, readBody } from './http.js';
+import { htmlResponse, HttpError, jsonResponse, readBody } from './http.js';
 import { renderSharePage } from './render.js';
 import { validateShare } from './validate.js';
 
@@ -41,6 +41,16 @@ function normalizeId(value) {
   return ID_PATTERN.test(value) ? value.toUpperCase() : null;
 }
 
+function stripIcons(node) {
+  if (Array.isArray(node)) {
+    node.forEach(stripIcons);
+  } else if (node && typeof node === 'object') {
+    delete node.icon;
+    if (node.items) stripIcons(node.items);
+    if (node.tabs) stripIcons(node.tabs);
+  }
+}
+
 export function createApp(options) {
   const {
     apiKey,
@@ -64,7 +74,6 @@ export function createApp(options) {
     if (!record) return null;
     const expiresAt = record.meta?.expiresAt;
     if (expiresAt != null && Date.parse(expiresAt) <= Date.now()) {
-      if (record.stream) await record.stream.cancel().catch(() => {});
       await storage.remove(id);
       return null;
     }
@@ -112,16 +121,23 @@ export function createApp(options) {
   }
 
   async function handleApiGet(id) {
-    const record = await getLive(id, storage.readStream);
+    const record = await getLive(id, storage.readText);
     if (!record) throw new HttpError(404, 'share not found');
     const meta = record.meta ?? {};
-    const head =
-      `{"id":${JSON.stringify(meta.id ?? id)},"name":${JSON.stringify(meta.name ?? null)},` +
-      `"createdAt":${JSON.stringify(meta.createdAt ?? null)},"expiresAt":${JSON.stringify(meta.expiresAt ?? null)},` +
-      `"size":${JSON.stringify(meta.size ?? null)},"data":`;
-    return new Response(concatStreams([head, record.stream, '}']), {
-      status: 200,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
+    let data;
+    try {
+      data = JSON.parse(record.text);
+    } catch {
+      throw new HttpError(404, 'share not found');
+    }
+    if (data?.shared) stripIcons(data.shared);
+    return jsonResponse(200, {
+      id: meta.id ?? id,
+      name: meta.name ?? null,
+      createdAt: meta.createdAt ?? null,
+      expiresAt: meta.expiresAt ?? null,
+      size: meta.size ?? null,
+      data,
     });
   }
 
@@ -184,6 +200,7 @@ export function createApp(options) {
     }
     const item = doc.shared?.type === typeKey ? doc.shared : null;
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
+    stripIcons(item);
     const og = renderOg ? ogTags(typeKey, item, record.meta ?? {}, `${origin}/${slug}/${id}/og`) : '';
     const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, og));
     res.headers.set('cache-control', cacheControl(record.meta));

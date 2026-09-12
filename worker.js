@@ -12,10 +12,6 @@ function kvStorage(kv) {
       const { value, metadata } = await kv.getWithMetadata(key(id), { type: 'text' });
       return value == null ? null : { text: value, meta: metadata ?? {} };
     },
-    async readStream(id) {
-      const { value, metadata } = await kv.getWithMetadata(key(id), { type: 'stream' });
-      return value == null ? null : { stream: value, meta: metadata ?? {} };
-    },
     async write(id, text, meta, ttlSeconds) {
       const options = { metadata: meta };
       if (ttlSeconds != null) options.expirationTtl = Math.max(MIN_KV_TTL_SECONDS, ttlSeconds);
