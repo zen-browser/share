@@ -10,6 +10,7 @@ export const TYPE_SLUGS = {
   space: 'space',
   folder: 'folder',
   splitView: 'split',
+  boost: 'boost',
 };
 
 const SLUG_TO_TYPE = {
@@ -17,6 +18,7 @@ const SLUG_TO_TYPE = {
   folder: 'folder',
   'split-view': 'splitView',
   split: 'splitView',
+  boost: 'boost',
 };
 
 const MAX_NAME_LENGTH = 200;
@@ -41,10 +43,26 @@ function normalizeId(value) {
   return ID_PATTERN.test(value) ? value.toUpperCase() : null;
 }
 
+const IMAGE_DATA_URL = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i;
+
+function decodeImageDataUrl(value) {
+  const match = typeof value === 'string' ? value.match(IMAGE_DATA_URL) : null;
+  if (!match) return null;
+  try {
+    const binary = atob(match[2].replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return { type: match[1].toLowerCase(), bytes };
+  } catch {
+    return null;
+  }
+}
+
 function stripIcons(node) {
   if (Array.isArray(node)) {
     node.forEach(stripIcons);
   } else if (node && typeof node === 'object') {
+    if (node.type === 'boost') return;
     delete node.icon;
     if (node.items) stripIcons(node.items);
     if (node.tabs) stripIcons(node.tabs);
@@ -53,7 +71,8 @@ function stripIcons(node) {
 
 export function createApp(options) {
   const {
-    apiKey,
+    apiKey = null,
+    requireAuth = true,
     secretKeys = [],
     storage,
     template,
@@ -63,7 +82,7 @@ export function createApp(options) {
     renderOg = null,
   } = options;
 
-  if (!apiKey) throw new Error('apiKey is required');
+  if (requireAuth && !apiKey) throw new Error('apiKey is required unless requireAuth is false');
   if (!storage) throw new Error('storage is required');
   if (!template) throw new Error('template is required');
   if (!Number.isFinite(maxBodyBytes) || maxBodyBytes <= 0) throw new Error('maxBodyBytes must be a positive number');
@@ -147,7 +166,7 @@ export function createApp(options) {
     return `public, max-age=${Math.max(0, Math.min(cap, remaining))}`;
   }
 
-  const LABELS = { space: 'Space', folder: 'Folder', splitView: 'Split View' };
+  const LABELS = { space: 'Space', folder: 'Folder', splitView: 'Split View', boost: 'Boost' };
 
   function escapeAttr(v) {
     return String(v).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
@@ -169,24 +188,37 @@ export function createApp(options) {
     return n;
   }
 
+  function describe(typeKey, item) {
+    if (typeKey === 'boost') return `${item.name} · Made for ${item.domain}`;
+    const tabs = countTabs(item);
+    return `${tabs} ${tabs === 1 ? 'tab' : 'tabs'} shared`;
+  }
+
+  function hasOgImage(typeKey, item) {
+    return typeKey === 'boost' ? IMAGE_DATA_URL.test(item.preview ?? '') : Boolean(renderOg);
+  }
+
   function ogTags(typeKey, item, meta, ogImageUrl) {
     const label = LABELS[typeKey] || 'Share';
-    const title = meta?.name ? `A ${label} from ${meta.name}` : `A shared ${label}`;
-    const tabs = countTabs(item);
-    const description = `${tabs} ${tabs === 1 ? 'tab' : 'tabs'} shared`;
+    const sharer = typeKey === 'boost' ? item.author?.trim() || meta?.name : meta?.name;
+    const title = sharer ? `A ${label} from ${sharer}` : `A shared ${label}`;
+    const description = describe(typeKey, item);
     const t = escapeAttr(title);
     const d = escapeAttr(description);
-    const img = escapeAttr(ogImageUrl);
-    return (
+    let tags =
       `<meta property="og:type" content="website">` +
       `<meta property="og:title" content="${t}">` +
       `<meta property="og:description" content="${d}">` +
-      `<meta property="og:image" content="${img}">` +
-      `<meta name="twitter:card" content="summary_large_image">` +
       `<meta name="twitter:title" content="${t}">` +
-      `<meta name="twitter:description" content="${d}">` +
-      `<meta name="twitter:image" content="${img}">`
-    );
+      `<meta name="twitter:description" content="${d}">`;
+    if (ogImageUrl) {
+      const img = escapeAttr(ogImageUrl);
+      tags +=
+        `<meta property="og:image" content="${img}">` +
+        `<meta name="twitter:card" content="summary_large_image">` +
+        `<meta name="twitter:image" content="${img}">`;
+    }
+    return tags;
   }
 
   async function handlePage(typeKey, id, slug, origin) {
@@ -201,7 +233,9 @@ export function createApp(options) {
     const item = doc.shared?.type === typeKey ? doc.shared : null;
     if (!item) return Response.redirect(NOT_FOUND_REDIRECT, 302);
     stripIcons(item);
-    const og = renderOg ? ogTags(typeKey, item, record.meta ?? {}, `${origin}/${slug}/${id}/og`) : '';
+    if (item.type === 'boost') delete item.boostData;
+    const ogImageUrl = hasOgImage(typeKey, item) ? `${origin}/${slug}/${id}/og` : null;
+    const og = ogTags(typeKey, item, record.meta ?? {}, ogImageUrl);
     const res = htmlResponse(200, renderSharePage(template, typeKey, item, record.meta ?? {}, og));
     res.headers.set('cache-control', cacheControl(record.meta));
     res.headers.set('x-robots-tag', 'noindex, nofollow');
@@ -209,7 +243,6 @@ export function createApp(options) {
   }
 
   async function handleOg(typeKey, id) {
-    if (!renderOg) throw new HttpError(404, 'not found');
     const record = await getLive(id, storage.readText);
     if (!record) throw new HttpError(404, 'share not found');
     let doc;
@@ -220,7 +253,15 @@ export function createApp(options) {
     }
     const item = doc.shared?.type === typeKey ? doc.shared : null;
     if (!item) throw new HttpError(404, 'share not found');
-    const res = await renderOg({ type: typeKey, item, meta: record.meta ?? {} });
+    let res;
+    if (typeKey === 'boost') {
+      const preview = decodeImageDataUrl(item.preview);
+      if (!preview) throw new HttpError(404, 'this boost has no preview image');
+      res = new Response(preview.bytes, { status: 200, headers: { 'content-type': preview.type } });
+    } else {
+      if (!renderOg) throw new HttpError(404, 'not found');
+      res = await renderOg({ type: typeKey, item, meta: record.meta ?? {} });
+    }
     res.headers.set('cache-control', cacheControl(record.meta));
     res.headers.set('x-robots-tag', 'noindex, nofollow');
     return res;
@@ -255,7 +296,7 @@ export function createApp(options) {
       if (secretKey != null) {
         viaSecretKey = await matchesAny(secretKey, secretKeys);
         if (!viaSecretKey) throw new HttpError(403, 'invalid secret key');
-      } else if (!(await keysMatch(request.headers.get('x-api-key'), apiKey))) {
+      } else if (requireAuth && !(await keysMatch(request.headers.get('x-api-key'), apiKey))) {
         throw new HttpError(401, 'invalid or missing API key');
       }
 

@@ -524,8 +524,160 @@ function downloadPillEl(message) {
   return outer;
 }
 
-const RENDERERS = { space: renderSpace, folder: renderFolder, splitView: renderSplitView };
-const LABELS = { space: 'Space', folder: 'Folder', splitView: 'Split View' };
+const INFO_ICON =
+  '<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M10 9v5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="6" r="1.2" fill="white"/></svg>';
+
+const DOWNLOAD_URL = 'https://zen-browser.app/download';
+
+const IMAGE_DATA_URL = /^data:image\/[a-z0-9.+-]+;base64,/i;
+const VIEW_BOX = /^-?[0-9.]+(?:,| |, )-?[0-9.]+(?:,| |, )-?[0-9.]+(?:,| |, )-?[0-9.]+$/;
+
+function imageDataUrl(value) {
+  return typeof value === 'string' && IMAGE_DATA_URL.test(value) ? value : null;
+}
+
+const HOSTNAME = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i;
+
+function googleFaviconUrl(domain) {
+  const host = typeof domain === 'string' ? domain.trim().toLowerCase() : '';
+  return HOSTNAME.test(host) ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128` : null;
+}
+
+function signatureEl(signature) {
+  if (!signature || typeof signature.viewBox !== 'string' || !VIEW_BOX.test(signature.viewBox)) return null;
+  const paths = (signature.paths ?? []).filter((d) => typeof d === 'string' && d.trim());
+  if (!paths.length) return null;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', signature.viewBox);
+  svg.setAttribute('preserveAspectRatio', 'xMinYMid meet');
+  svg.setAttribute('class', 'pointer-events-none absolute -left-8 top-1/2 z-0 h-[150px] w-[calc(100%+2rem)] -translate-y-1/2 text-zinc-900 opacity-[0.14] sm:h-[180px]');
+  svg.setAttribute('aria-hidden', 'true');
+  for (const d of paths) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.append(path);
+  }
+  return svg;
+}
+
+function boostInfoEl() {
+  const wrap = el('span', 'relative inline-flex');
+  const marker = el('span', 'inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full transition-opacity hover:opacity-70');
+  marker.style.color = `color-mix(in srgb, ${accentColor} 55%, #a1a1aa)`;
+  marker.append(icon(INFO_ICON, 'block h-4 w-4'));
+
+  const popover = el('div', 'absolute left-0 top-full z-20 hidden w-[260px] pt-2');
+  popover.setAttribute('role', 'tooltip');
+  const card = el('div', 'rounded-2xl p-3.5 text-left text-[13px] font-normal not-italic leading-relaxed text-zinc-700 shadow-xl shadow-black/10');
+  card.style.background = BRAND_FRAME;
+  card.style.outline = '1px solid rgba(0,0,0,.08)';
+  card.append(el('p', null, 'The author name is self-reported and not verified. It is not affiliated with Zen.'));
+  popover.append(card);
+
+  wrap.addEventListener('mouseenter', () => popover.classList.remove('hidden'));
+  wrap.addEventListener('mouseleave', () => popover.classList.add('hidden'));
+  wrap.append(marker, popover);
+  return wrap;
+}
+
+function renderBoost(item, meta) {
+  document.body.style.background = BRAND_PAGE;
+  const author = (typeof item.author === 'string' && item.author.trim()) || meta.name?.trim() || '';
+  const iconSrc = imageDataUrl(item.icon);
+  const previewSrc = imageDataUrl(item.preview);
+  const ink = `color-mix(in srgb, ${accentColor} 35%, #18181b)`;
+  const muted = `color-mix(in srgb, ${accentColor} 45%, #71717a)`;
+  const themed = `color-mix(in srgb, ${accentColor} 80%, black)`;
+
+  // Top bar naming the site the boost applies to.
+  const bar = el('div', 'flex flex-wrap items-center justify-center gap-x-2 px-4 py-2.5 text-center text-[13px] text-white sm:text-sm');
+  bar.style.background = themed;
+  const site = el('span');
+  site.append('This boost is for ');
+  site.append(el('strong', 'font-bold', item.domain));
+  bar.append(site);
+  bar.append(el('span', 'opacity-70', 'Open this link in Zen to install it.'));
+
+  const page = el('div', 'mx-auto w-full max-w-[960px] px-6 py-8 sm:px-10 md:px-[44px] md:py-[56px]');
+
+  const header = el('header', 'flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between');
+  const identity = el('div', 'flex min-w-0 items-center gap-4');
+  const tile = el('div', 'flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-2xl bg-white shadow-md shadow-black/[0.06] sm:h-[68px] sm:w-[68px] sm:rounded-[18px]');
+  tile.style.outline = '1px solid rgba(0,0,0,.08)';
+  tile.style.color = muted;
+  const sources = [googleFaviconUrl(item.domain), iconSrc].filter(Boolean);
+  const showGlobe = () => tile.replaceChildren(icon(GLOBE_ICON, 'h-[46%] w-[46%]'));
+  if (sources.length) {
+    const img = el('img', 'h-[54%] w-[54%] object-contain');
+    img.alt = '';
+    img.addEventListener('error', () => {
+      const next = sources.shift();
+      if (next) img.src = next;
+      else showGlobe();
+    });
+    img.src = sources.shift();
+    tile.append(img);
+  } else {
+    showGlobe();
+  }
+  tile.title = `Made for ${item.domain}`;
+  identity.append(tile);
+
+  const text = el('div', 'relative min-w-0');
+  const signature = signatureEl(item.signature);
+  if (signature) text.append(signature);
+  const h1 = el('h1', 'relative z-10 truncate text-[24px] font-bold leading-tight tracking-tight sm:text-[30px]', item.name);
+  h1.style.color = ink;
+  text.append(h1);
+  const byline = el('p', 'relative z-10 mt-1 flex items-center gap-1.5 text-[14px] sm:text-[15px]');
+  byline.style.color = muted;
+  byline.append(el('span', 'italic', author ? 'by' : 'for'));
+  const who = el('span', 'truncate font-semibold', author || item.domain);
+  who.style.color = ink;
+  byline.append(who);
+  byline.append(boostInfoEl());
+  text.append(byline);
+  identity.append(text);
+  header.append(identity);
+
+  const cta = el('a', 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl px-7 text-[15px] font-bold text-white shadow-lg shadow-black/10 transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] sm:w-auto');
+  cta.style.background = themed;
+  cta.textContent = 'Get Boost';
+  cta.href = DOWNLOAD_URL;
+  cta.target = '_blank';
+  cta.rel = 'noopener noreferrer';
+  cta.title = 'Open this link in Zen to install the boost';
+  header.append(cta);
+  page.append(header);
+
+  if (previewSrc) {
+    ensureWinBgStyle();
+    const frame = el('div', 'win-bg mt-7 rounded-2xl p-2 shadow-2xl shadow-black/20 sm:mt-9 sm:p-2.5');
+    frame.style.setProperty('--win-bg', BRAND_FRAME);
+    frame.style.setProperty('--win-op', '0.9');
+    const inner = el('figure', 'relative max-h-[70vh] overflow-hidden rounded-xl bg-white');
+    inner.style.boxShadow = CONTENT_SHADOW;
+    const img = el('img', 'block w-full object-cover object-top');
+    img.src = previewSrc;
+    img.alt = `Preview of ${item.domain} with the ${item.name} boost applied`;
+    inner.append(img);
+    frame.append(inner);
+    page.append(frame);
+  }
+
+  const holder = document.createDocumentFragment();
+  holder.append(bar, page);
+  return holder;
+}
+
+const RENDERERS = { space: renderSpace, folder: renderFolder, splitView: renderSplitView, boost: renderBoost };
+const LABELS = { space: 'Space', folder: 'Folder', splitView: 'Split View', boost: 'Boost' };
 
 document.title = share.item.name?.trim() || LABELS[share.type] || 'share';
 document.getElementById('app').append(RENDERERS[share.type](share.item, share.meta));

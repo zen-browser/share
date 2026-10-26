@@ -18,7 +18,8 @@
       "oneOf": [
         { "$ref": "#/$defs/space" },
         { "$ref": "#/$defs/folder" },
-        { "$ref": "#/$defs/splitView" }
+        { "$ref": "#/$defs/splitView" },
+        { "$ref": "#/$defs/boost" }
       ]
     },
 
@@ -125,6 +126,43 @@
         }
       },
       "required": ["type", "tabs"],
+      "additionalProperties": false
+    },
+
+    "boost": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "boost" },
+        "name": { "type": "string", "minLength": 1 },
+        "domain": { "type": "string", "minLength": 1 },
+        "author": { "type": "string" },
+        "icon": { "$ref": "#/$defs/imageDataUrl" },
+        "preview": { "$ref": "#/$defs/imageDataUrl" },
+        "signature": { "$ref": "#/$defs/signature" },
+        "boostData": { "type": "object" }
+      },
+      "required": ["type", "name", "domain", "boostData"],
+      "additionalProperties": false
+    },
+
+    "imageDataUrl": {
+      "type": "string",
+      "pattern": "^data:image/[a-zA-Z0-9.+-]+;base64,"
+    },
+
+    "signature": {
+      "type": "object",
+      "properties": {
+        "viewBox": {
+          "type": "string",
+          "pattern": "^-?[0-9.]+(,| |, )-?[0-9.]+(,| |, )-?[0-9.]+(,| |, )-?[0-9.]+$"
+        },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["viewBox", "paths"],
       "additionalProperties": false
     },
 

@@ -93,6 +93,7 @@ export async function renderOg({ type, item, meta }) {
   const label = LABELS[type] || 'Share';
   const from = meta?.name ? `A ${label} from ${escapeHtml(meta.name)}` : `A shared ${label}`;
   const tabs = countTabs(item);
+  const subtitle = `${tabs} ${tabs === 1 ? 'tab' : 'tabs'}`;
   const primary = BRAND_GREEN;
   const bg = `linear-gradient(135deg, ${mix(BRAND_GREEN, 0.88)}, ${mix(BRAND_GREEN, 0.74)})`;
 
@@ -103,7 +104,7 @@ export async function renderOg({ type, item, meta }) {
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:1200px;height:630px;background:${bg};font-family:Inter">` +
     `<img src="${iconUri}" width="${ic.width}" height="${ic.height}" style="margin-bottom:56px" />` +
     `<div style="display:flex;font-size:70px;font-weight:800;letter-spacing:-0.03em;color:${darken(primary, 0.66)}">${from}</div>` +
-    `<div style="display:flex;font-size:40px;font-weight:600;color:rgba(30,27,52,0.42);margin-top:12px">${tabs} ${tabs === 1 ? 'tab' : 'tabs'}</div>` +
+    `<div style="display:flex;font-size:40px;font-weight:600;color:rgba(30,27,52,0.42);margin-top:12px">${subtitle}</div>` +
     `</div>`;
 
   return new ImageResponse(html, { width: 1200, height: 630, fonts });

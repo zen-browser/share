@@ -23,3 +23,6 @@ name = "CREATE_LIMIT"
 type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 2, period = 60 }
+
+[env.dev]
+vars = { DEV = "true", MAX_BODY_BYTES = "26214400", RETENTION_DAYS = "30" }
